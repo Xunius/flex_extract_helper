@@ -16,10 +16,10 @@ FLEX_EXTRACT_FOLDER='/home/guangzhi/Downloads/flex_extract/'     # FLEX_EXTRACT 
 OUTPUTDIR='/home/guangzhi/datasets/flexpart_erai/'               # folder to save outputs
 
 CONTROL_FILE='CONTROL_EI.public'  # CONTROL file used as default
-START_DATE='20130201'             # start date
-END_DATE='20130206'               # end date
-DAYS_PER_JOB=2                    # number of days to retrieve in each sub-job
-TIME_OUT=3*60*60                  # seconds, timeout for the submit.py call
+START_DATE='20130206'             # start date
+END_DATE='20130208'               # end date
+DAYS_PER_JOB=1                    # number of days to retrieve in each sub-job
+TIME_OUT=4*60*60                  # seconds, timeout for the submit.py call
 TIME_OUT_RETRY=3                  # number of retries if sumbit.py times out
 N_WORKERS=3                       # max number of parallel retrievals to launch.
 JOB_PREFIX='EI_job'               # prefix string for all sub-jobs
@@ -71,38 +71,32 @@ def launchJob(args, job_dates, logfilename, timeout=None, retry=3):
     '''
 
     with open(logfilename, 'w') as logfile:
-
-        proc=subprocess.Popen(args, stdout=logfile, stderr=subprocess.STDOUT,
-                bufsize=0)
         tried=0
         ret=1
-        try:
-            print('\n# <serial_batch_job>: 1st launch of job', str(job_dates))
-            ret=proc.wait(timeout=timeout)
-        except subprocess.TimeoutExpired as e:
-            print('\n# <serial_batch_job>: 1st launch of job', str(job_dates), 'timed out.')
-            print(e)
-            proc.kill()
-            while tried<retry:
-                try:
-                    print('\n# <serial_batch_job>: try #%d ' %(tried+1), str(job_dates))
-                    ret=proc.wait(timeout=timeout)
-                except subprocess.TimeoutExpired as e:
-                    print('\n# <serial_batch_job>: try #%d ' %(tried+1), str(job_dates), 'timed out.')
-                    print(e)
-                    proc.kill()
-                    tried+=1
-                else:
-                    tried=retry
-        except Exception as e:
-            print('\n# <serial_batch_job>: job failed:', str(job_dates))
-            print(e)
 
-    if ret==0:
-        # write a dummy text file if job done, such that subsequent run can skip it
-        outputdir=args[args.index('--outputdir')+1]
-        with open(os.path.join(outputdir, 'job_done'), 'w') as fout:
-            fout.write('job done.')
+        while tried<=retry:
+            proc=subprocess.Popen(args, stdout=logfile, stderr=subprocess.STDOUT,
+                    bufsize=0)
+            try:
+                print('\n# <serial_batch_job>: launch of job', str(job_dates), 'try #', tried+1)
+                ret=proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired as e:
+                print('\n# <serial_batch_job>: try #%d for job' %(tried+1), str(job_dates), 'timed out.')
+                print(e)
+                proc.kill()
+                tried+=1
+            except Exception as e:
+                print('\n# <serial_batch_job>: job failed:', str(job_dates))
+                print(e)
+                break
+            else:
+                if ret==0:
+                    # write a dummy text file if job done, such that subsequent run can skip it
+                    outputdir=args[args.index('--outputdir')+1]
+                    if os.path.exists(outputdir):
+                        with open(os.path.join(outputdir, 'job_done'), 'w') as fout:
+                            fout.write('job done.')
+                break
 
     return ret
 
@@ -367,35 +361,79 @@ def printJobSummary(start_date, end_date, days_per_job, job_list, n_workers):
 
     return
 
+def main(flex_extract_folder, control_file, start_date, end_date, days_per_job,
+        n_workers, outputdir, time_out, time_out_retry, job_prefix, copy_control, dry):
+    '''Start parallel jobs
 
-
-#-------------Main---------------------------------
-if __name__=='__main__':
+    Args:
+        flex_extract_folder (str): absolute path to the FLEX_EXTRACT installation
+            folder.
+        control_file (str): name of the CONTROL file used as default, e.g.
+            CONTROL_EI.public
+        start_date (str): start date in format "YYYYMMDD"
+        end_date (str): end date in format "YYYYMMDD"
+        days_per_job (int): number of days in each chunk.
+        n_workers (init): max number of parallel retrievals to launch.
+        outputdir (str): absolute path to the folder to save results.
+        timeout (int or None): time out period (in seconds) of the subprocess
+            call to the `sumbit.py` script. If None, no time out.
+        time_out_retry (int): if <timeout> is not None, the maximum number of
+            retries if the call of `submit.py` times out.
+        job_prefix (str): prefix to the sub-folder inside <outputdir> to save
+            outputs of a sub-job. The sub-folder will have a name of
+            "<job_prefix>_<nn>_<start_date>-<end_date>", and the log file of
+            the sub-job will have a filename of "<job_prefix>_log_<nn>.txt",
+            where <nn> is the job id.
+        copy_control (bool): If True, create a copy of the default CONTROL file
+            as specified by <ctrl_file> and replace the START_DATE and END_DATE
+            records within. The copied file is saved to the same folder as
+            <ctrl_file>, and the `sumbit.py` is called with the `--controlfile`
+            option pointing to the copied filed. This way, if you modify the
+            default CONTROL during the process of the script, subsequent
+            calls to the `submit.py` won't be affected.
+            If False, don't copy the default CONTROL file, and the `submit.py`
+            is called with `--controlfile <ctrl_file>`. Be careful that if
+            the entire retrieval task takes a long time to finish and you change
+            the contents of <ctrl_file>, subsequent `sumbit.py` calls will
+            get affected.
+        dry (bool): if True, only print summary of jobs.
+    '''
 
     #------------------Get date list------------------
-    date_list=breakDownDates(START_DATE, END_DATE, DAYS_PER_JOB)
+    date_list=breakDownDates(start_date, end_date, days_per_job)
 
     #----------------Get submit.py file----------------
-    exe_file=checkExeFile(FLEX_EXTRACT_FOLDER)
+    exe_file=checkExeFile(flex_extract_folder)
 
     #-------------Get default CONTROL file-------------
-    ctrl_folder, ctrl_file=checkControlFile(FLEX_EXTRACT_FOLDER, CONTROL_FILE)
+    ctrl_folder, ctrl_file=checkControlFile(flex_extract_folder, control_file)
 
     #-----------------Prepare job list-----------------
-    job_list=prepareJobList(exe_file, ctrl_file, date_list, OUTPUTDIR, TIME_OUT,
-            TIME_OUT_RETRY, JOB_PREFIX, COPY_CONTROL)
+    job_list=prepareJobList(exe_file, ctrl_file, date_list, outputdir, time_out,
+            time_out_retry, job_prefix, copy_control)
 
     #-------------------Launch jobs-------------------
     if DRY:
-        printJobSummary(START_DATE, END_DATE, DAYS_PER_JOB, job_list, N_WORKERS)
+        printJobSummary(start_date, end_date, days_per_job, job_list, n_workers)
     else:
-        pool=Pool(N_WORKERS)
+        pool=Pool(n_workers)
 
         #results=pool.imap_unordered(launchJobUnpack, job_list)
         results=pool.map(launchJobUnpack, job_list)
         for rii in results:
             print(rii)
         print('\n# <serial_batch_job>: Results:', results)
+
+
+#-------------Main---------------------------------
+if __name__=='__main__':
+
+    main(FLEX_EXTRACT_FOLDER, CONTROL_FILE, START_DATE, END_DATE, DAYS_PER_JOB,
+            N_WORKERS, OUTPUTDIR, TIME_OUT, TIME_OUT_RETRY, JOB_PREFIX,
+            COPY_CONTROL, DRY)
+
+
+
 
 
 

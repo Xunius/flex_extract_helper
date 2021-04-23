@@ -34,7 +34,7 @@ info on different modes.
 
 ## Usage
 
-E.g. Modify the `downloader.py` Python script like this:
+E.g. Modify the header part of the `downloader.py` Python script like this:
 
 ```
 FLEX_EXTRACT_FOLDER='/path/to/flex_extract/'     # FLEX_EXTRACT intallation folder
@@ -51,36 +51,6 @@ JOB_PREFIX='EI_job'               # prefix string for all sub-jobs
 COPY_CONTROL=True                 # whether to make a copy of the CONTROL file for each sub-job
 
 DRY=True                          # If True, only print a summary.
-
-# skip ...
-
-
-if __name__=='__main__':
-
-    #------------------Get date list------------------
-    date_list=breakDownDates(START_DATE, END_DATE, DAYS_PER_JOB)
-
-    #----------------Get submit.py file----------------
-    exe_file=checkExeFile(FLEX_EXTRACT_FOLDER)
-
-    #-------------Get default CONTROL file-------------
-    ctrl_folder, ctrl_file=checkControlFile(FLEX_EXTRACT_FOLDER, CONTROL_FILE)
-
-    #-----------------Prepare job list-----------------
-    job_list=prepareJobList(exe_file, ctrl_file, date_list, OUTPUTDIR, TIME_OUT,
-            TIME_OUT_RETRY, JOB_PREFIX, COPY_CONTROL)
-
-    #-------------------Launch jobs-------------------
-    if DRY:
-        printJobSummary(START_DATE, END_DATE, DAYS_PER_JOB, job_list, N_WORKERS)
-    else:
-        pool=Pool(N_WORKERS)
-
-        #results=pool.imap_unordered(launchJobUnpack, job_list)
-        results=pool.map(launchJobUnpack, job_list)
-        for rii in results:
-            print(rii)
-        print('\n# <serial_batch_job>: Results:', results)
 ```
 
 
