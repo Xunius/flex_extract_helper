@@ -12,8 +12,8 @@ import glob
 SEARCH_DIR='/home/guangzhi/datasets/flexpart_erai/outputs'               # folder to save outputs
 
 
-START_DATE='20130203'             # start date
-END_DATE='20130207'               # end date
+START_DATE='20120101'             # start date
+END_DATE='20161231'               # end date
 HOURS=range(0, 24, 3)
 PREFIX='EI'
 
@@ -77,7 +77,8 @@ def mergeContinuousTime(time_list, time_step):
     time_list.sort()
     index=[]
     for ii in range(len(time_list)-1):
-        if (time_list[ii+1]-time_list[ii]).seconds/3600 > time_step:
+        dh=(time_list[ii+1]-time_list[ii]).total_seconds()/3600
+        if dh > time_step:
             index.append(ii+1)
 
     lines=[time_list[i:j] for i, j in zip([0]+index, index+[None])]
@@ -94,6 +95,7 @@ if __name__=='__main__':
     got_files=[os.path.basename(fii) for fii in got_files]
 
     missing_list=list(set(exp_list).difference(got_files))
+    missing_list.sort()
 
     #------------------Report missing------------------
     missing_dates=[]
