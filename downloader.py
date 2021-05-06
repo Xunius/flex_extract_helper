@@ -16,16 +16,16 @@ FLEX_EXTRACT_FOLDER='/home/guangzhi/Downloads/flex_extract/'     # FLEX_EXTRACT 
 OUTPUTDIR='/home/guangzhi/datasets/flexpart_erai/'               # folder to save outputs
 
 CONTROL_FILE='CONTROL_EI.public'  # CONTROL file used as default
-START_DATE='20130206'             # start date
-END_DATE='20130208'               # end date
-DAYS_PER_JOB=1                    # number of days to retrieve in each sub-job
-TIME_OUT=4*60*60                  # seconds, timeout for the submit.py call
-TIME_OUT_RETRY=3                  # number of retries if sumbit.py times out
-N_WORKERS=3                       # max number of parallel retrievals to launch.
+START_DATE='20130501'             # start date
+END_DATE='20130531'               # end date
+DAYS_PER_JOB=3                    # number of days to retrieve in each sub-job
+TIME_OUT=3*60*60                  # seconds, timeout for the submit.py call
+TIME_OUT_RETRY=2                  # number of retries if sumbit.py times out
+N_WORKERS=6                       # max number of parallel retrievals to launch.
 JOB_PREFIX='EI_job'               # prefix string for all sub-jobs
 COPY_CONTROL=True                 # whether to make a copy of the CONTROL file for each sub-job
 
-DRY=True                          # If True, only print a summary.
+DRY=False                          # If True, only print a summary.
 
 
 
@@ -96,6 +96,7 @@ def launchJob(args, job_dates, logfilename, timeout=None, retry=3):
                     if os.path.exists(outputdir):
                         with open(os.path.join(outputdir, 'job_done'), 'w') as fout:
                             fout.write('job done.')
+                        print('### JOB DONE:', job_dates)
                 break
 
     return ret
