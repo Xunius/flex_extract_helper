@@ -16,8 +16,8 @@ FLEX_EXTRACT_FOLDER='/home/guangzhi/Downloads/flex_extract/'     # FLEX_EXTRACT 
 OUTPUTDIR='/home/guangzhi/datasets/flexpart_erai/'               # folder to save outputs
 
 CONTROL_FILE='CONTROL_EI.public'  # CONTROL file used as default
-START_DATE='20130501'             # start date
-END_DATE='20130531'               # end date
+START_DATE='20190829'             # start date
+END_DATE='20191231'               # end date
 DAYS_PER_JOB=3                    # number of days to retrieve in each sub-job
 TIME_OUT=3*60*60                  # seconds, timeout for the submit.py call
 TIME_OUT_RETRY=2                  # number of retries if sumbit.py times out
@@ -421,8 +421,6 @@ def main(flex_extract_folder, control_file, start_date, end_date, days_per_job,
 
         #results=pool.imap_unordered(launchJobUnpack, job_list)
         results=pool.map(launchJobUnpack, job_list)
-        for rii in results:
-            print(rii)
         print('\n# <serial_batch_job>: Results:', results)
 
 

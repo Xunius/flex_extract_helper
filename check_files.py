@@ -10,10 +10,10 @@ import os
 import glob
 
 SEARCH_DIR='/home/guangzhi/datasets/flexpart_erai/outputs'               # folder to save outputs
+SEARCH_DIR='/run/media/guangzhi/Elements SE/outputs'
 
-
-START_DATE='20120101'             # start date
-END_DATE='20161231'               # end date
+START_DATE='20100101'             # start date
+END_DATE='20191231'               # end date
 HOURS=range(0, 24, 3)
 PREFIX='EI'
 
